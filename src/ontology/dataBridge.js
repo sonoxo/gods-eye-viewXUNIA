@@ -22,14 +22,22 @@ function asTimestamp(value, fallback = new Date().toISOString()) {
 /**
  * Classify a presentation layer without confusing synthetic/simulation state
  * with observed public-source data. Only explicit simulation signals produce
- * the `simulation` class.
+ * the `simulation` class. AIS exposes its dev-evidence seam through the
+ * `transportStatus: synthetic` field, so that transport signal is authoritative
+ * even when the layer's ordinary mode/source strings still look live.
  */
 export function classifyLayerData(layer = {}) {
   const stats = layer.stats || {};
   const mode = String(stats.mode || '').trim().toLowerCase();
+  const transportStatus = String(stats.transportStatus || '').trim().toLowerCase();
+  const declaredDataClass = String(stats.dataClass || '').trim().toLowerCase();
   const text = `${layer.source || ''} ${stats.source || ''}`.toLowerCase();
   const simulation = mode === 'sim'
     || mode === 'simulation'
+    || transportStatus === 'synthetic'
+    || declaredDataClass === 'simulation'
+    || stats.synthetic === true
+    || stats.isSynthetic === true
     || /\bsynthetic\b|\bsimulation\b/.test(text);
   return Object.freeze({
     dataClass: simulation ? 'simulation' : 'observed',
