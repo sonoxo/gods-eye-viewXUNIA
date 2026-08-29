@@ -1,0 +1,4 @@
+run = "npm run replit"
+
+[deployment]
+run = ["sh", "-c", "npm run start"]
