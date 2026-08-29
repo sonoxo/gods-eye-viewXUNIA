@@ -15,7 +15,7 @@
     "url": "https://github.com/bilawalsidhu/gods-eye-view/issues"
   },
   "engines": {
-    "node": ">=24.14.0 <25 || >=26 <27"
+    "node": ">=22.12.0 <23 || >=24.14.0 <25 || >=26 <27"
   },
   "keywords": [
     "cesium",
@@ -33,6 +33,8 @@
   ],
   "scripts": {
     "dev": "vite",
+    "replit": "vite --host 0.0.0.0 --port ${PORT:-4173}",
+    "start": "vite preview --host 0.0.0.0 --port ${PORT:-4173}",
     "dev:secure": "./scripts/dev-secure.sh",
     "opensky:import": "./scripts/opensky-import-client.sh",
     "build": "vite build",
