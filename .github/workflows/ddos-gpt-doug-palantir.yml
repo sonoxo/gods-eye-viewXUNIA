@@ -1,0 +1,50 @@
+name: DDOS GPT-Doug Palantir Security Gate
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/security/ddos-gpt-doug-palantir.mjs"
+      - "scripts/xunia-host.mjs"
+      - "scripts/test-ddos-mitigation.mjs"
+      - "package.json"
+      - "package-lock.json"
+      - ".replit"
+      - ".github/workflows/ddos-gpt-doug-palantir.yml"
+  pull_request:
+    paths:
+      - "src/security/ddos-gpt-doug-palantir.mjs"
+      - "scripts/xunia-host.mjs"
+      - "scripts/test-ddos-mitigation.mjs"
+      - "package.json"
+      - "package-lock.json"
+      - ".replit"
+      - ".github/workflows/ddos-gpt-doug-palantir.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mitigation-verification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.14.0
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: DDoS mitigation contract
+        run: npm run test:ddos
+
+      - name: Production build
+        run: npm run build
