@@ -33,13 +33,14 @@
   ],
   "scripts": {
     "dev": "vite",
-    "replit": "vite --host 0.0.0.0 --port ${PORT:-4173}",
-    "start": "vite preview --host 0.0.0.0 --port ${PORT:-4173}",
+    "replit": "node scripts/xunia-host.mjs --dev",
+    "start": "npm run build && node scripts/xunia-host.mjs --preview",
     "dev:secure": "./scripts/dev-secure.sh",
     "opensky:import": "./scripts/opensky-import-client.sh",
     "build": "vite build",
-    "preview": "vite preview",
+    "preview": "node scripts/xunia-host.mjs --preview",
     "test": "node scripts/run-unit-tests.mjs",
+    "test:ddos": "node scripts/test-ddos-mitigation.mjs",
     "test:track": "node scripts/track-regression.mjs",
     "qa:map-source-tray": "node scripts/qa-map-source-tray.mjs"
   },
