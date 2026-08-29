@@ -6,22 +6,59 @@ import { attachDataManagerOntology } from './dataBridge.js';
 const PANEL_ID = 'xunia-ontology-console';
 const TOGGLE_ID = 'xunia-ontology-toggle';
 const STYLE_ID = 'xunia-ontology-console-style';
+const ATTRIBUTION_CLEARANCE_VAR = '--xunia-attribution-clearance';
+const MIN_ATTRIBUTION_CLEARANCE_PX = 64;
+const ATTRIBUTION_GAP_PX = 12;
 const ontology = createVirginiaOntology();
 let initialized = false;
 let dataSource = null;
 let runtime = null;
+let attributionResizeObserver = null;
+let attributionResizeListenerInstalled = false;
 
 function ensureStyles() {
   if (document.getElementById(STYLE_ID)) return;
   const style = document.createElement('style');
   style.id = STYLE_ID;
   style.textContent = `
-#${PANEL_ID}{position:fixed;left:18px;bottom:112px;width:min(390px,calc(100vw - 36px));z-index:1150;background:rgba(3,10,18,.90);border:1px solid rgba(91,230,255,.38);box-shadow:0 18px 55px rgba(0,0,0,.42),inset 0 0 24px rgba(33,205,255,.05);backdrop-filter:blur(14px);color:#d8f8ff;font:12px/1.4 'JetBrains Mono',monospace}
-#${PANEL_ID}[hidden]{display:none}#${PANEL_ID} .xo-head{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid rgba(91,230,255,.2)}#${PANEL_ID} .xo-head strong{letter-spacing:.11em;color:#73ecff}#${PANEL_ID} .xo-head small{color:#7da0ae}#${PANEL_ID} .xo-body{padding:10px 12px;display:grid;gap:9px}#${PANEL_ID} .xo-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}#${PANEL_ID} .xo-stat{padding:7px;background:rgba(27,73,91,.18);border:1px solid rgba(91,230,255,.12)}#${PANEL_ID} .xo-stat b{display:block;color:#7df6c7;font-size:15px}#${PANEL_ID} .xo-actions{display:flex;gap:6px;flex-wrap:wrap}#${PANEL_ID} button{cursor:pointer;border:1px solid rgba(91,230,255,.28);background:#071521;color:#d8f8ff;padding:7px 9px;font:600 11px 'JetBrains Mono',monospace}#${PANEL_ID} button:hover{border-color:#73ecff}#${PANEL_ID} input{width:100%;border:1px solid rgba(91,230,255,.2);background:#030b12;color:#d8f8ff;padding:8px;font:11px 'JetBrains Mono',monospace}#${PANEL_ID} .xo-results{max-height:155px;overflow:auto;display:grid;gap:5px}#${PANEL_ID} .xo-row{padding:7px 8px;border-left:2px solid #73ecff;background:rgba(0,0,0,.22)}#${PANEL_ID} .xo-row small{display:block;color:#7697a4;margin-top:2px}#${TOGGLE_ID}{position:fixed;left:18px;bottom:64px;z-index:1151;border:1px solid rgba(91,230,255,.35);background:rgba(3,10,18,.88);color:#73ecff;padding:9px 11px;font:700 11px 'JetBrains Mono',monospace;letter-spacing:.08em;cursor:pointer}
+#${PANEL_ID}{position:fixed;left:18px;bottom:calc(var(${ATTRIBUTION_CLEARANCE_VAR},64px) + 48px);width:min(390px,calc(100vw - 36px));max-height:calc(100vh - var(${ATTRIBUTION_CLEARANCE_VAR},64px) - 72px);overflow:auto;z-index:1150;background:rgba(3,10,18,.90);border:1px solid rgba(91,230,255,.38);box-shadow:0 18px 55px rgba(0,0,0,.42),inset 0 0 24px rgba(33,205,255,.05);backdrop-filter:blur(14px);color:#d8f8ff;font:12px/1.4 'JetBrains Mono',monospace}
+#${PANEL_ID}[hidden]{display:none}#${PANEL_ID} .xo-head{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid rgba(91,230,255,.2)}#${PANEL_ID} .xo-head strong{letter-spacing:.11em;color:#73ecff}#${PANEL_ID} .xo-head small{color:#7da0ae}#${PANEL_ID} .xo-body{padding:10px 12px;display:grid;gap:9px}#${PANEL_ID} .xo-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}#${PANEL_ID} .xo-stat{padding:7px;background:rgba(27,73,91,.18);border:1px solid rgba(91,230,255,.12)}#${PANEL_ID} .xo-stat b{display:block;color:#7df6c7;font-size:15px}#${PANEL_ID} .xo-actions{display:flex;gap:6px;flex-wrap:wrap}#${PANEL_ID} button{cursor:pointer;border:1px solid rgba(91,230,255,.28);background:#071521;color:#d8f8ff;padding:7px 9px;font:600 11px 'JetBrains Mono',monospace}#${PANEL_ID} button:hover{border-color:#73ecff}#${PANEL_ID} input{width:100%;border:1px solid rgba(91,230,255,.2);background:#030b12;color:#d8f8ff;padding:8px;font:11px 'JetBrains Mono',monospace}#${PANEL_ID} .xo-results{max-height:155px;overflow:auto;display:grid;gap:5px}#${PANEL_ID} .xo-row{padding:7px 8px;border-left:2px solid #73ecff;background:rgba(0,0,0,.22)}#${PANEL_ID} .xo-row small{display:block;color:#7697a4;margin-top:2px}#${TOGGLE_ID}{position:fixed;left:18px;bottom:var(${ATTRIBUTION_CLEARANCE_VAR},64px);z-index:1151;border:1px solid rgba(91,230,255,.35);background:rgba(3,10,18,.88);color:#73ecff;padding:9px 11px;font:700 11px 'JetBrains Mono',monospace;letter-spacing:.08em;cursor:pointer}
 body.ui-clean-view #${PANEL_ID},body.ui-clean-view #${TOGGLE_ID},body.recording-mode #${PANEL_ID},body.recording-mode #${TOGGLE_ID}{display:none!important}
-@media(max-width:720px){#${PANEL_ID}{left:8px;bottom:104px;width:calc(100vw - 16px)}#${TOGGLE_ID}{left:8px;bottom:56px}}
+@media(max-width:720px){#${PANEL_ID}{left:8px;width:calc(100vw - 16px)}#${TOGGLE_ID}{left:8px}}
   `;
   document.head.appendChild(style);
+}
+
+export function attributionClearancePx(viewportHeight, creditTop, {
+  minimum = MIN_ATTRIBUTION_CLEARANCE_PX,
+  gap = ATTRIBUTION_GAP_PX,
+} = {}) {
+  const height = Number(viewportHeight);
+  const top = Number(creditTop);
+  if (!Number.isFinite(height) || !Number.isFinite(top)) return minimum;
+  return Math.max(minimum, Math.ceil(height - top + gap));
+}
+
+function syncAttributionClearance() {
+  const credits = document.getElementById('cesium-credits');
+  const rect = credits?.getBoundingClientRect?.();
+  const clearance = rect && rect.height > 0
+    ? attributionClearancePx(window.innerHeight, rect.top)
+    : MIN_ATTRIBUTION_CLEARANCE_PX;
+  document.documentElement.style.setProperty(ATTRIBUTION_CLEARANCE_VAR, `${clearance}px`);
+}
+
+function watchAttributionClearance() {
+  syncAttributionClearance();
+  if (!attributionResizeListenerInstalled) {
+    window.addEventListener('resize', syncAttributionClearance, { passive: true });
+    attributionResizeListenerInstalled = true;
+  }
+  const credits = document.getElementById('cesium-credits');
+  if (!credits || typeof ResizeObserver === 'undefined') return;
+  attributionResizeObserver?.disconnect();
+  attributionResizeObserver = new ResizeObserver(syncAttributionClearance);
+  attributionResizeObserver.observe(credits);
 }
 
 function objectLabel(record) {
@@ -94,6 +131,7 @@ function createConsole(viewer) {
       <div class="xo-results"></div>
     </div>`;
   document.body.appendChild(panel);
+  watchAttributionClearance();
 
   const defaultRecords = [
     ...ontology.listObjects('Organization'),
