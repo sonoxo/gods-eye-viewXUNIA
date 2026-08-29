@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main, feature/rvia-xunia-ontology]
+    branches: [main, feature/rvia-xunia-ontology, feature/xunia-semantic-bus]
 
 permissions:
   contents: read
@@ -27,7 +27,7 @@ jobs:
         run: npm ci
 
       - name: XUNIA ontology focused tests
-        run: node --test src/ontology/core.test.mjs
+        run: node --test src/ontology/*.test.mjs
 
       - name: Full unit suite
         run: npm test
