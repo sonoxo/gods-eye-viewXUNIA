@@ -1,4 +1,4 @@
-name: Deploy XUNIA to GitHub Pages
+name: Publish XUNIA Free Demo
 
 on:
   push:
@@ -6,21 +6,16 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
-  group: github-pages
+  group: xunia-free-demo
   cancel-in-progress: true
 
 jobs:
-  build-and-deploy:
+  publish-demo:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,23 +29,25 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build free GitHub Pages fallback
+      - name: Build keyless static demo
         env:
-          # Non-secret placeholder: Google tiles reject it and the existing app
-          # drops into its OSM/Cesium fallback instead of requiring a paid key.
+          # Existing runtime catches Google 3D Tiles failure and drops into
+          # OSM/Cesium fallback. No paid Google key is required for this demo.
           GOOGLE_MAPS_API_KEY: xunia-free-fallback
-        run: npm run build -- --base=/gods-eye-viewXUNIA/
+        run: npm run build -- --base=./
 
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./dist
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Publish dist to xunia-demo branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/xunia-demo
+          cp -a dist/. /tmp/xunia-demo/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan xunia-demo
+          git rm -rf .
+          cp -a /tmp/xunia-demo/. .
+          touch .nojekyll
+          git add -A
+          git commit -m "Publish XUNIA free demo from ${GITHUB_SHA}"
+          git push --force origin xunia-demo
