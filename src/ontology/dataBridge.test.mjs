@@ -12,6 +12,10 @@ test('classifyLayerData separates observed feeds from explicit simulation feeds'
     dataClass: 'simulation',
     simulation: true,
   });
+  assert.deepEqual(classifyLayerData({ source: 'AISStream', stats: { transportStatus: 'synthetic' } }), {
+    dataClass: 'simulation',
+    simulation: true,
+  });
 });
 
 test('data manager bridge creates source, dataset and aggregate runtime observation objects', () => {
