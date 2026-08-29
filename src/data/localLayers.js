@@ -1,4 +1,4 @@
-import '../ontology/bootstrap.js';
+import '../ontology/autoBootstrap.js';
 import { createLocalGeoJsonLayer } from './localGeojson.js';
 import { createFirmsHeatmapLayer } from './firmsHeatmap.js';
 import submarineCablesLayer from './telegeographySubmarineCables.js';
