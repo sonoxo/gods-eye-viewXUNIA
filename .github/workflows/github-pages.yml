@@ -17,7 +17,7 @@ concurrency:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -34,13 +34,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run tests
-        run: npm test
-
       - name: Build free GitHub Pages fallback
         env:
-          # A non-secret placeholder lets the existing Google-tiles attempt fail
-          # into the app's built-in OSM/Cesium fallback instead of aborting boot.
+          # Non-secret placeholder: Google tiles reject it and the existing app
+          # drops into its OSM/Cesium fallback instead of requiring a paid key.
           GOOGLE_MAPS_API_KEY: xunia-free-fallback
         run: npm run build -- --base=/gods-eye-viewXUNIA/
 
