@@ -73,6 +73,17 @@ export function attachDataManagerOntology({ ontology, dataManager, now = () => n
     throw new Error('dataManager with getAll()/subscribe() is required');
   }
 
+  const listeners = new Set();
+  const notify = (detail) => {
+    for (const listener of listeners) {
+      try {
+        listener(detail);
+      } catch (error) {
+        console.warn('[XUNIA Ontology] bridge listener failed:', error);
+      }
+    }
+  };
+
   const syncLayer = (layerId, eventType = 'snapshot') => {
     const layer = dataManager.getAll().find((candidate) => candidate.id === layerId);
     if (!layer) return null;
@@ -144,7 +155,16 @@ export function attachDataManagerOntology({ ontology, dataManager, now = () => n
     ontology.link('observationSourcedFrom', ids.observationId, ids.sourceId);
     ontology.link('observationDescribesDataset', ids.observationId, ids.datasetId);
 
-    return ontology.getObject('Dataset', ids.datasetId);
+    const dataset = ontology.getObject('Dataset', ids.datasetId);
+    notify(Object.freeze({
+      layerId: layer.id,
+      eventType,
+      dataClass: semantic.dataClass,
+      status,
+      datasetId: ids.datasetId,
+      observationId: ids.observationId,
+    }));
+    return dataset;
   };
 
   const syncAll = (eventType = 'snapshot') => {
@@ -153,12 +173,13 @@ export function attachDataManagerOntology({ ontology, dataManager, now = () => n
   };
 
   syncAll('bootstrap');
-  const unsubscribe = dataManager.subscribe((change) => {
+  const unsubscribeManager = dataManager.subscribe((change) => {
     if (!change?.layerId) return;
     if (![
       'visibility',
       'visibility-transition',
       'visibility-failed',
+      'refresh-transition',
       'refresh',
       'refresh-failed',
       'refresh-cancelled',
@@ -171,6 +192,14 @@ export function attachDataManagerOntology({ ontology, dataManager, now = () => n
   return Object.freeze({
     syncAll,
     syncLayer,
-    destroy: unsubscribe,
+    subscribe(listener) {
+      if (typeof listener !== 'function') throw new TypeError('ontology bridge listener must be a function');
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    destroy() {
+      unsubscribeManager();
+      listeners.clear();
+    },
   });
 }
