@@ -20,3 +20,11 @@ test('ontology chrome is hidden in clean-view and recording modes', () => {
   assert.match(bootstrapSource, /body\.recording-mode #\$\{PANEL_ID\}/);
   assert.match(bootstrapSource, /body\.recording-mode #\$\{TOGGLE_ID\}/);
 });
+
+test('ontology console rebuilds current objects when the semantic bridge changes', () => {
+  assert.match(bootstrapSource, /function defaultOntologyRecords\(\)/);
+  assert.match(bootstrapSource, /function renderConsoleQuery\(panel, search\)/);
+  assert.match(bootstrapSource, /bridge\.subscribe\(\(\) =>/);
+  assert.match(bootstrapSource, /if \(!panel\.hidden\) renderConsoleQuery\(panel, search\)/);
+  assert.doesNotMatch(bootstrapSource, /const defaultRecords = \[/);
+});
