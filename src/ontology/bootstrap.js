@@ -65,6 +65,16 @@ function objectLabel(record) {
   return record.name || record.summary || record.id;
 }
 
+function defaultOntologyRecords() {
+  return [
+    ...ontology.listObjects('Organization'),
+    ...ontology.listObjects('Place'),
+    ...ontology.listObjects('Application'),
+    ...ontology.listObjects('ReferenceSource'),
+    ...ontology.listObjects('Dataset'),
+  ];
+}
+
 function renderResults(panel, records) {
   const target = panel.querySelector('.xo-results');
   target.innerHTML = '';
@@ -76,6 +86,25 @@ function renderResults(panel, records) {
     target.appendChild(row);
   }
   if (!records.length) target.innerHTML = '<div class="xo-row"><small>No matching ontology objects.</small></div>';
+}
+
+function refreshConsoleStats(panel) {
+  const stats = ontology.stats();
+  for (const [key, value] of Object.entries({
+    objectTypes: stats.objectTypes,
+    linkTypes: stats.linkTypes,
+    objects: stats.objects,
+    links: stats.links,
+  })) {
+    const target = panel.querySelector(`[data-stat="${key}"]`);
+    if (target) target.textContent = String(value);
+  }
+}
+
+function renderConsoleQuery(panel, search) {
+  const query = search.value.trim();
+  renderResults(panel, query ? ontology.search(query) : defaultOntologyRecords());
+  refreshConsoleStats(panel);
 }
 
 function escapeHtml(value) {
@@ -100,7 +129,7 @@ function focusRichmond(viewer) {
   });
 }
 
-function createConsole(viewer) {
+function createConsole(viewer, bridge) {
   ensureStyles();
   if (document.getElementById(PANEL_ID)) return;
   const stats = ontology.stats();
@@ -117,10 +146,10 @@ function createConsole(viewer) {
     <div class="xo-head"><strong>XUNIA ONTOLOGY // RVIA</strong><small>VIRGINIA · RICHMOND</small></div>
     <div class="xo-body">
       <div class="xo-stats">
-        <div class="xo-stat">OBJECT TYPES<b>${stats.objectTypes}</b></div>
-        <div class="xo-stat">LINK TYPES<b>${stats.linkTypes}</b></div>
-        <div class="xo-stat">OBJECTS<b>${stats.objects}</b></div>
-        <div class="xo-stat">LINKS<b>${stats.links}</b></div>
+        <div class="xo-stat">OBJECT TYPES<b data-stat="objectTypes">${stats.objectTypes}</b></div>
+        <div class="xo-stat">LINK TYPES<b data-stat="linkTypes">${stats.linkTypes}</b></div>
+        <div class="xo-stat">OBJECTS<b data-stat="objects">${stats.objects}</b></div>
+        <div class="xo-stat">LINKS<b data-stat="links">${stats.links}</b></div>
       </div>
       <input class="xo-search" type="search" placeholder="Search organization, place, source, dataset..." aria-label="Search XUNIA ontology" />
       <div class="xo-actions">
@@ -133,19 +162,16 @@ function createConsole(viewer) {
   document.body.appendChild(panel);
   watchAttributionClearance();
 
-  const defaultRecords = [
-    ...ontology.listObjects('Organization'),
-    ...ontology.listObjects('Place'),
-    ...ontology.listObjects('Application'),
-    ...ontology.listObjects('ReferenceSource'),
-    ...ontology.listObjects('Dataset'),
-  ];
-  renderResults(panel, defaultRecords);
+  const search = panel.querySelector('.xo-search');
+  renderConsoleQuery(panel, search);
 
-  toggle.addEventListener('click', () => { panel.hidden = !panel.hidden; });
-  panel.querySelector('.xo-search').addEventListener('input', (event) => {
-    const query = event.target.value.trim();
-    renderResults(panel, query ? ontology.search(query) : defaultRecords);
+  toggle.addEventListener('click', () => {
+    panel.hidden = !panel.hidden;
+    if (!panel.hidden) renderConsoleQuery(panel, search);
+  });
+  search.addEventListener('input', () => renderConsoleQuery(panel, search));
+  bridge.subscribe(() => {
+    if (!panel.hidden) renderConsoleQuery(panel, search);
   });
   panel.querySelector('[data-action="richmond"]').addEventListener('click', () => focusRichmond(viewer));
   panel.querySelector('[data-action="manifest"]').addEventListener('click', () => downloadJson('rvia-xunia-palantir-ontology-manifest.json', toPalantirOntologyManifest(ontology)));
@@ -193,7 +219,7 @@ export function initXuniaOntologyRuntime({ viewer, dataManager } = {}) {
 
   const bridge = attachDataManagerOntology({ ontology, dataManager });
   renderOntologyPlaces(viewer);
-  createConsole(viewer);
+  createConsole(viewer, bridge);
 
   runtime = Object.freeze({
     ontology,
