@@ -52,6 +52,8 @@ test('data manager bridge creates source, dataset and aggregate runtime observat
     dataManager,
     now: () => '2026-08-29T07:31:00Z',
   });
+  const bridgeEvents = [];
+  const unsubscribeBridge = bridge.subscribe((event) => bridgeEvents.push(event));
 
   const flightsDataset = ontology.getObject('Dataset', 'runtime-dataset-flights');
   const simDataset = ontology.getObject('Dataset', 'runtime-dataset-training-sim');
@@ -70,11 +72,21 @@ test('data manager bridge creates source, dataset and aggregate runtime observat
   });
   assert.ok(applicationLinks.some((entry) => entry.object.id === 'runtime-dataset-flights'));
 
+  layers[0].stats.refreshing = true;
+  listener({ type: 'refresh-transition', layerId: 'flights' });
+  assert.equal(ontology.getObject('Dataset', 'runtime-dataset-flights').status, 'loading');
+  assert.equal(ontology.getObject('Observation', 'runtime-observation-flights').eventType, 'refresh-transition');
+  assert.equal(bridgeEvents.at(-1).eventType, 'refresh-transition');
+  assert.equal(bridgeEvents.at(-1).status, 'loading');
+
+  layers[0].stats.refreshing = false;
   layers[0].stats.count = 21;
   listener({ type: 'refresh', layerId: 'flights' });
   assert.equal(ontology.getObject('Dataset', 'runtime-dataset-flights').recordCount, 21);
   assert.equal(ontology.getObject('Observation', 'runtime-observation-flights').eventType, 'refresh');
+  assert.equal(bridgeEvents.at(-1).eventType, 'refresh');
 
+  unsubscribeBridge();
   bridge.destroy();
   assert.equal(listener, null);
 });
