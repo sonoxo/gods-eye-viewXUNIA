@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "ecosystem_version": "4.0.0",
+  "repo": "sonoxo/gods-eye-viewXUNIA",
+  "plane_id": "glass-onion-spatial",
+  "role": "geospatial-public-source-visualization",
+  "control_root": "sonoxo/gpt-doug-llm",
+  "execution_plane": "sonoxo/zyra",
+  "responsibilities": ["3D Earth", "public aviation/maritime/orbital context", "provenance", "freshness labels", "spatial correlation", "human review"],
+  "collective_ai_layers": ["classical_ai", "machine_learning", "neural_networks", "deep_learning", "generative_ai", "agentic_ai"],
+  "authority_boundary": "The spatial surface is limited to public or otherwise authorized data; visual correlation does not create surveillance, targeting, classified-access or third-party action authority."
+}
