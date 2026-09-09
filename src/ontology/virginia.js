@@ -17,6 +17,12 @@ export function createVirginiaOntology() {
   });
 
   ontology.defineObjectType({
+    apiName: 'RouteEvidence', displayName: 'Mission route receipt', primaryKey: 'id', titleProperty: 'status',
+    description: 'Imported RVIA routing state. Does not establish external execution or source authentication.',
+    properties: { id: 'string', missionId: 'string', target: 'string', status: 'string', executionState: 'string', observedAt: 'timestamp', executionVerified: 'boolean' },
+  });
+
+  ontology.defineObjectType({
     apiName: 'Jurisdiction',
     displayName: 'Jurisdiction',
     primaryKey: 'id',

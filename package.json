@@ -40,6 +40,7 @@
     "build": "vite build",
     "preview": "node scripts/xunia-host.mjs --preview",
     "test": "node scripts/run-unit-tests.mjs",
+    "test:mission-contract": "node --test packages/mission-contract/contract.test.mjs src/ontology/core.test.mjs src/ontology/dataBridge.test.mjs src/ontology/missionReceipt.test.mjs",
     "test:ddos": "node scripts/test-ddos-mitigation.mjs",
     "test:track": "node scripts/track-regression.mjs",
     "qa:map-source-tray": "node scripts/qa-map-source-tray.mjs"
