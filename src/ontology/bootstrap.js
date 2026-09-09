@@ -67,6 +67,7 @@ function objectLabel(record) {
 
 function defaultOntologyRecords() {
   return [
+    ...ontology.listObjects('RouteEvidence'),
     ...ontology.listObjects('Organization'),
     ...ontology.listObjects('Place'),
     ...ontology.listObjects('Application'),
@@ -81,7 +82,7 @@ function renderResults(panel, records) {
   for (const record of records.slice(0, 25)) {
     const row = document.createElement('div');
     row.className = 'xo-row';
-    const classification = record.dataClass ? ` · ${String(record.dataClass).toUpperCase()}` : '';
+    const classification = record.__type === 'RouteEvidence' ? ` · ${record.status} · EXECUTION UNVERIFIED` : record.dataClass ? ` · ${String(record.dataClass).toUpperCase()}` : '';
     row.innerHTML = `<strong>${escapeHtml(objectLabel(record))}</strong><small>${escapeHtml(record.__type)} · ${escapeHtml(record.id || '')}${escapeHtml(classification)}</small>`;
     target.appendChild(row);
   }
@@ -224,6 +225,12 @@ export function initXuniaOntologyRuntime({ viewer, dataManager } = {}) {
   runtime = Object.freeze({
     ontology,
     bridge,
+    importMissionResult: (reply) => {
+      const receipt = ontology.importMissionResult(reply);
+      const panel = document.getElementById(PANEL_ID);
+      if (panel) renderConsoleQuery(panel, panel.querySelector('.xo-search'));
+      return receipt;
+    },
     toPalantirManifest: () => toPalantirOntologyManifest(ontology),
   });
   initialized = true;
@@ -231,6 +238,7 @@ export function initXuniaOntologyRuntime({ viewer, dataManager } = {}) {
   if (typeof window !== 'undefined') {
     window.__xuniaOntology = ontology;
     window.__xuniaOntologyBridge = bridge;
+    window.__xuniaImportMissionResult = runtime.importMissionResult;
     window.__xuniaPalantirManifest = runtime.toPalantirManifest;
   }
   return runtime;

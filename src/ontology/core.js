@@ -1,3 +1,5 @@
+import { parseRouteEvidence, extractRouteEvidence } from '../../packages/mission-contract/index.mjs';
+
 function assertName(value, label) {
   const text = String(value || '').trim();
   if (!text) throw new Error(`${label} is required`);
@@ -93,6 +95,13 @@ export class XuniaOntology {
     const type = this.objectTypes.get(apiName);
     if (!type) throw new Error(`Unknown object type: ${apiName}`);
     const record = { ...(value || {}) };
+    if (apiName === 'RouteEvidence') {
+      const receipt = parseRouteEvidence(record);
+      if (record.id !== receipt.missionId) throw new Error('ROUTE_EVIDENCE_ID_MISMATCH');
+      const old = this.getObject(apiName, record.id);
+      if (old && Date.parse(old.observedAt) > Date.parse(receipt.observedAt)) throw new Error('STALE_ROUTE_EVIDENCE');
+      provenance = { kind: 'imported-route-receipt', source: receipt.source, observedAt: receipt.observedAt, authenticated: false, executionVerified: false };
+    }
     const keyValue = record[type.primaryKey];
     if (keyValue === null || keyValue === undefined || String(keyValue).trim() === '') {
       throw new Error(`${apiName}.${type.primaryKey} is required`);
@@ -113,6 +122,11 @@ export class XuniaOntology {
   getObject(typeName, primaryKey) {
     const apiName = normalizeApiName(typeName);
     return this.objects.get(apiName)?.get(String(primaryKey)) || null;
+  }
+
+  importMissionResult(reply) {
+    const receipt = extractRouteEvidence(reply);
+    return this.upsertObject('RouteEvidence', { id: receipt.missionId, ...receipt });
   }
 
   listObjects(typeName) {
